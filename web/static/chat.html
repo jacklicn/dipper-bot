@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>dipper-bot</title>
+  <script src="/static/marked.umd.js"></script>
+  <style>
+    /* OpenClaw Chameleon: green accent. 深色模式（默认） */
+    :root {
+      --chameleon: #10b981;
+      --chameleon-hover: #34d399;
+      --chameleon-muted: rgba(16, 185, 129, 0.15);
+      --bg-main: #212121;
+      --bg-elevated: #2f2f2f;
+      --bg-input: #40414f;
+      --border: #3f3f46;
+      --text: #ececf1;
+      --text-muted: #8e8ea0;
+      --user-bubble: #343541;
+      --bot-bubble: #2f2f2f;
+      --scrollbar-track: #212121;
+      --scrollbar-thumb: #4b5563;
+      --scrollbar-thumb-hover: #6b7280;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+    /* 浅色模式：跟随系统偏好 */
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --chameleon: #059669;
+        --chameleon-hover: #10b981;
+        --chameleon-muted: rgba(5, 150, 105, 0.12);
+        --bg-main: #f7f7f8;
+        --bg-elevated: #ffffff;
+        --bg-input: #e5e5e7;
+        --border: #d1d5db;
+        --text: #1f2937;
+        --text-muted: #6b7280;
+        --user-bubble: #e5e7eb;
+        --bot-bubble: #ffffff;
+        --scrollbar-track: #f7f7f8;
+        --scrollbar-thumb: #cbd5e1;
+        --scrollbar-thumb-hover: #94a3b8;
+        --shadow: rgba(0, 0, 0, 0.1);
+      }
+    }
+    /* 浅色模式：手动切换 */
+    [data-theme="light"] {
+      --chameleon: #059669;
+      --chameleon-hover: #10b981;
+      --chameleon-muted: rgba(5, 150, 105, 0.12);
+      --bg-main: #f7f7f8;
+      --bg-elevated: #ffffff;
+      --bg-input: #e5e5e7;
+      --border: #d1d5db;
+      --text: #1f2937;
+      --text-muted: #6b7280;
+      --user-bubble: #e5e7eb;
+      --bot-bubble: #ffffff;
+      --scrollbar-track: #f7f7f8;
+      --scrollbar-thumb: #cbd5e1;
+      --scrollbar-thumb-hover: #94a3b8;
+      --shadow: rgba(0, 0, 0, 0.1);
+    }
+    /* 深色模式：手动切换 */
+    [data-theme="dark"] {
+      --chameleon: #10b981;
+      --chameleon-hover: #34d399;
+      --chameleon-muted: rgba(16, 185, 129, 0.15);
+      --bg-main: #212121;
+      --bg-elevated: #2f2f2f;
+      --bg-input: #40414f;
+      --border: #3f3f46;
+      --text: #ececf1;
+      --text-muted: #8e8ea0;
+      --user-bubble: #343541;
+      --bot-bubble: #2f2f2f;
+      --scrollbar-track: #212121;
+      --scrollbar-thumb: #4b5563;
+      --scrollbar-thumb-hover: #6b7280;
+      --shadow: rgba(0, 0, 0, 0.4);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      background: var(--bg-main);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      flex-shrink: 0;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      background: var(--bg-elevated);
+    }
+    .header-left { display: flex; align-items: center; gap: 0.5rem; }
+    .header-actions { display: flex; align-items: center; gap: 0.35rem; }
+    .logo { font-size: 1.5rem; }
+    .title { font-weight: 600; font-size: 1rem; color: var(--text); }
+    .session-badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      background: var(--chameleon-muted);
+      color: var(--chameleon);
+      border-radius: 0.375rem;
+      font-family: ui-monospace, monospace;
+    }
+    .chat {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chat::-webkit-scrollbar { width: 8px; }
+    .chat::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 4px; }
+    .chat::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 999px;
+      border: 2px solid var(--scrollbar-track);
+    }
+    .chat::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+    .msg {
+      max-width: 85%;
+      padding: 0.875rem 1rem;
+      border-radius: 1rem;
+      line-height: 1.6;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      border: 1px solid var(--border);
+      white-space: pre-wrap;
+    }
+    .msg.file-upload {
+      align-self: flex-end;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+    }
+    .msg.file-upload .file-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0;
+      font-size: 0.9rem;
+    }
+    .msg.file-upload .file-name {
+      font-weight: 500;
+    }
+    .msg.file-upload .file-path {
+      font-family: ui-monospace, monospace;
+      font-size: 0.8em;
+      color: var(--text-muted);
+      word-break: break-all;
+    }
+    .msg { position: relative; }
+    .reply-preview {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.5rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .reply-preview .reply-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .reply-preview .reply-cancel {
+      padding: 0.2rem 0.5rem;
+      background: transparent;
+      border: none;
+      color: #71717a;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .reply-preview .reply-cancel:hover { color: var(--text); }
+    .is-hidden { display: none !important; }
+    .msg-context-menu {
+      position: fixed;
+      z-index: 1000;
+      min-width: 120px;
+      padding: 0.25rem 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .msg-context-menu button {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 0.875rem;
+      text-align: left;
+      cursor: pointer;
+    }
+    .msg-context-menu button:hover { background: var(--user-bubble); }
+    .file-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      margin-bottom: 0.25rem;
+    }
+    .file-chips:empty { display: none; }
+    .input-box.has-chips .file-chips { border-radius: 1rem 1rem 0 0; }
+    .input-box.has-chips #input { border-top: 1px solid var(--border); }
+    .file-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text);
+    }
+    .file-chip .file-chip-remove {
+      padding: 0;
+      height: 1rem;
+      width: 1rem;
+      min-width: 1rem;
+      background: var(--border);
+      border: none;
+      border-radius: 50%;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.7rem;
+      line-height: 1;
+    }
+    .file-chip .file-chip-remove:hover { background: #52525b; color: var(--text); }
+    .file-chip .file-chip-icon { width: 1.125rem; height: 1.125rem; flex-shrink: 0; display: block; }
+    .input-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      background: var(--bg-elevated);
+    }
+    .input-box:focus-within { border-color: var(--chameleon); box-shadow: 0 0 0 1px var(--chameleon); }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+    }
+    .msg pre, .msg code {
+      font-family: ui-monospace, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+      font-size: 0.875em;
+      background: var(--bg-input);
+      padding: 0.125rem 0.25rem;
+      border-radius: 0.25rem;
+    }
+    .msg pre {
+      padding: 0.75rem;
+      overflow-x: auto;
+      margin: 0.5rem 0;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) var(--bg-elevated);
+    }
+    .msg pre::-webkit-scrollbar { height: 6px; }
+    .msg pre::-webkit-scrollbar-track { background: var(--bg-elevated); border-radius: 3px; }
+    .msg pre::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+    .msg pre::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+    .msg pre code { padding: 0; background: none; }
+    .msg h1, .msg h2, .msg h3 { margin: 0.75em 0 0.5em; font-size: 1.1em; }
+    .msg h1 { font-size: 1.25em; }
+    .msg ul, .msg ol { margin: 0.5em 0; padding-left: 1.5em; }
+    .msg li { margin: 0.25em 0; }
+    .msg blockquote { margin: 0.5em 0; padding-left: 1em; border-left: 3px solid var(--chameleon); color: var(--text-muted); }
+    .msg a { color: var(--chameleon); text-decoration: none; }
+    .msg a:hover { color: var(--chameleon-hover); text-decoration: underline; }
+    .msg hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+    .msg table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+    .msg th, .msg td { border: 1px solid var(--border); padding: 0.375rem 0.5rem; text-align: left; }
+    .msg th { background: var(--bg-elevated); font-weight: 600; }
+    .msg del { color: var(--text-muted); }
+    .input-area {
+      flex-shrink: 0;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-main);
+    }
+    .input-area.drag-over {
+      background: var(--bg-elevated);
+      border-top-color: var(--chameleon);
+      outline: 2px dashed var(--chameleon);
+      outline-offset: -2px;
+    }
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      max-width: 48rem;
+      margin: 0 auto;
+    }
+    #input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 0 0 1rem 1rem;
+      background: transparent;
+      color: var(--text);
+      font-size: 1rem;
+      resize: none;
+      min-height: 44px;
+      max-height: 160px;
+      -ms-overflow-style: none;
+    }
+    #input::-webkit-scrollbar { display: none; }
+    #input:focus { outline: none; }
+    #input::placeholder { color: var(--text-muted); }
+    #send {
+      padding: 0.75rem 1rem;
+      background: var(--chameleon);
+      border: none;
+      border-radius: 0.75rem;
+      color: #fff;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #send .send-shortcut {
+      font-size: 0.7rem;
+      font-weight: 400;
+      opacity: 0.9;
+    }
+    #send:hover { background: var(--chameleon-hover); }
+    #send:disabled { opacity: 0.5; cursor: not-allowed; }
+    #fileInput { display: none; }
+    .upload-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; }
+    .typing {
+      align-self: flex-start;
+      padding: 0.5rem 1rem;
+      color: var(--chameleon);
+      font-size: 0.875rem;
+      font-family: ui-monospace, monospace;
+      white-space: pre-wrap;
+      -webkit-user-select: text;
+      user-select: text;
+      cursor: text;
+    }
+    .typing .typing-dots-line {
+      margin-bottom: 0.25rem;
+    }
+    .typing .typing-tools {
+      margin: 0;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      white-space: pre-wrap;
+      word-break: break-word;
+      -webkit-user-select: text;
+      user-select: text;
+    }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      background: transparent;
+      border: none;
+      border-radius: 0.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .icon-btn:hover { color: var(--chameleon); }
+    .icon-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .icon-btn.recording { background: #dc2626; color: #fff; }
+    .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    #mic.recording { background: #dc2626; color: #fff; }
+    .learn-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 40;
+      display: none;
+    }
+    .learn-backdrop.is-open { display: block; }
+    .learn-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(420px, 100vw);
+      height: 100%;
+      background: var(--bg-elevated);
+      border-left: 1px solid var(--border);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.2s ease;
+      box-shadow: 0 0 24px var(--shadow);
+    }
+    .learn-drawer.is-open { transform: translateX(0); }
+    .learn-drawer header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+    .learn-drawer h2 { margin: 0; font-size: 1rem; }
+    .learn-toolbar {
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .learn-window-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .learn-window-label { white-space: nowrap; }
+    .learn-stepper {
+      display: inline-flex;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg-input);
+      overflow: hidden;
+    }
+    .learn-window-input {
+      width: 3.2rem;
+      border: none;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      outline: none;
+    }
+    .learn-window-input::-webkit-outer-spin-button,
+    .learn-window-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    .learn-window-input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    .learn-step-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      width: 1.9rem;
+      min-width: 1.9rem;
+      height: 1.9rem;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .learn-step-btn:hover {
+      color: var(--chameleon);
+      background: var(--chameleon-muted);
+    }
+    .learn-step-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .learn-toolbar a { color: var(--chameleon); text-decoration: none; }
+    .learn-toolbar a:hover { text-decoration: underline; }
+    .learn-body {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      padding: 0.75rem 1rem 1rem;
+      font-size: 0.85rem;
+    }
+    .learn-kpi {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .learn-kpi div {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.45rem 0.5rem;
+    }
+    .learn-kpi span { display: block; color: var(--text-muted); font-size: 0.7rem; }
+    .learn-kpi strong { font-size: 1rem; }
+    .learn-pre {
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: ui-monospace, monospace;
+      font-size: 0.75rem;
+      max-height: 200px;
+      overflow: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+    .learn-pre::-webkit-scrollbar { width: 10px; height: 10px; }
+    .learn-pre::-webkit-scrollbar-track { background: transparent; }
+    .learn-pre::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 999px;
+      border: 2px solid var(--bg-main);
+    }
+    .learn-pre::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+    .learn-table-wrap { max-height: 220px; overflow: auto; border: 1px solid var(--border); border-radius: 0.5rem; }
+    .learn-table-wrap {
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+    }
+    .learn-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+    .learn-table-wrap::-webkit-scrollbar-track { background: transparent; }
+    .learn-table-wrap::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 999px;
+      border: 2px solid var(--bg-elevated);
+    }
+    .learn-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+    .learn-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+    .learn-table th, .learn-table td { border-bottom: 1px solid var(--border); padding: 0.35rem 0.4rem; text-align: left; vertical-align: top; }
+    .learn-table th { position: sticky; top: 0; background: var(--bg-elevated); color: var(--text-muted); font-weight: 600; }
+    .text-btn {
+      border: 1px solid var(--border);
+      background: var(--bg-main);
+      color: var(--text);
+      border-radius: 0.5rem;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .text-btn:hover { border-color: var(--chameleon); color: var(--chameleon); }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span class="logo">🐕</span>
+      <span class="title">dipper-bot</span>
+      <span class="session-badge">web:default</span>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="learnDashBtn" class="text-btn" title="Learning telemetry">Learning</button>
+      <button id="themeToggle" class="icon-btn" title="切换浅色/深色" aria-label="切换主题">
+        <svg id="themeIcon" viewBox="0 0 24 24"><use href="/static/icons/icon-theme-moon.svg#icon"></use></svg>
+      </button>
+    </div>
+  </header>
+  <main class="chat" id="chat"></main>
+  <div class="input-area" id="inputArea">
+    <div class="reply-preview is-hidden" id="replyPreview">
+      <span class="reply-text"></span>
+      <button type="button" class="reply-cancel" id="replyCancel">取消</button>
+    </div>
+    <div class="input-row">
+      <input type="file" id="fileInput" multiple>
+      <button id="mic" class="icon-btn" title="语音输入" aria-label="语音输入">
+        <svg viewBox="0 0 24 24"><use href="/static/icons/icon-mic.svg#icon"></use></svg>
+      </button>
+      <button id="upload" class="icon-btn" title="上传文件" aria-label="上传文件">
+        <svg viewBox="0 0 24 24"><use href="/static/icons/icon-upload.svg#icon"></use></svg>
+      </button>
+      <div class="input-box">
+        <div class="file-chips" id="fileChips"></div>
+        <textarea id="input" placeholder="输入消息，或使用 /new /help 等斜杠命令…" rows="1"></textarea>
+      </div>
+      <button id="send"><span>发送</span><span class="send-shortcut" id="sendShortcut">Ctrl+↵</span></button>
+    </div>
+    <div class="upload-hint" id="uploadHint"></div>
+  </div>
+  <div class="msg-context-menu is-hidden" id="contextMenu">
+    <button type="button" data-action="quote">引用</button>
+    <button type="button" data-action="copy">复制</button>
+  </div>
+  <div class="learn-backdrop" id="learnBackdrop" aria-hidden="true"></div>
+  <aside class="learn-drawer" id="learnDrawer" aria-hidden="true">
+    <header>
+      <h2>Learning</h2>
+      <button type="button" class="icon-btn" id="learnClose" title="关闭" aria-label="关闭">&times;</button>
+    </header>
+    <div class="learn-toolbar">
+      <div class="learn-window-group">
+        <span class="learn-window-label">window (h)</span>
+        <div class="learn-stepper" role="group" aria-label="window hours">
+          <button type="button" class="learn-step-btn" id="learnDec" title="减少 1 小时" aria-label="减少 1 小时">−</button>
+          <input type="number" id="learnWindow" class="learn-window-input" min="1" value="168" step="1" inputmode="numeric">
+          <button type="button" class="learn-step-btn" id="learnInc" title="增加 1 小时" aria-label="增加 1 小时">+</button>
+        </div>
+      </div>
+      <button type="button" class="text-btn" id="learnRefresh">刷新</button>
+    </div>
+    <div class="learn-body" id="learnBody">
+      <div class="learn-kpi" id="learnKpi"></div>
+      <div style="margin-bottom:0.5rem;color:var(--text-muted);font-size:0.75rem;">rates_by_category</div>
+      <pre class="learn-pre" id="learnByCat">{}</pre>
+      <div style="margin:0.65rem 0 0.35rem;color:var(--text-muted);font-size:0.75rem;">recent_events</div>
+      <div class="learn-table-wrap">
+        <table class="learn-table" id="learnEvents">
+          <thead><tr><th>time</th><th>cat</th><th>out</th><th>session</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </aside>
+  <script>
+    function escapeHtml(s) {
+      if (s == null) return '';
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+
+    /** Avoid [object Object] when API/model returns non-string content. */
+    function stringifyChatContent(x) {
+      if (x == null || x === '') return '';
+      if (typeof x === 'string') return x;
+      if (typeof x === 'number' || typeof x === 'boolean') return String(x);
+      try {
+        return JSON.stringify(x, null, 2);
+      } catch (_) {
+        return String(x);
+      }
+    }
+
+    const themeIconUrls = { dark: '/static/icons/icon-theme-moon.svg#icon', light: '/static/icons/icon-theme-sun.svg#icon' };
+    function setThemeIcon(theme) {
+      const icon = document.getElementById('themeIcon');
+      const useEl = icon?.querySelector('use');
+      if (useEl) useEl.setAttribute('href', themeIconUrls[theme] || themeIconUrls.dark);
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.title = theme === 'dark' ? '切换为浅色' : '切换为深色';
+      }
+    }
+    (function initTheme() {
+      const t = localStorage.getItem('theme');
+      if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      const theme = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      setThemeIcon(theme);
+    })();
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      setThemeIcon(next);
+    }
+    document.getElementById('themeToggle').onclick = toggleTheme;
+
+    (function initLearningDrawer() {
+      const backdrop = document.getElementById('learnBackdrop');
+      const drawer = document.getElementById('learnDrawer');
+      const body = document.getElementById('learnBody');
+      const btn = document.getElementById('learnDashBtn');
+      const closeBtn = document.getElementById('learnClose');
+      const refreshBtn = document.getElementById('learnRefresh');
+      const winInput = document.getElementById('learnWindow');
+      const decBtn = document.getElementById('learnDec');
+      const incBtn = document.getElementById('learnInc');
+      if (!backdrop || !drawer || !btn || !closeBtn || !refreshBtn || !winInput || !body || !decBtn || !incBtn) return;
+
+      function setOpen(open) {
+        backdrop.classList.toggle('is-open', open);
+        drawer.classList.toggle('is-open', open);
+        backdrop.setAttribute('aria-hidden', open ? 'false' : 'true');
+        drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+      }
+      function pct(x) {
+        if (typeof x !== 'number' || Number.isNaN(x)) return '-';
+        return (x * 100).toFixed(2) + '%';
+      }
+      function normalizeWindowValue() {
+        const wh = parseInt(String(winInput.value || '168'), 10);
+        const h = Number.isFinite(wh) && wh > 0 ? wh : 168;
+        winInput.value = String(h);
+        decBtn.disabled = h <= 1;
+        return h;
+      }
+      function stepWindow(delta) {
+        const next = Math.max(1, normalizeWindowValue() + delta);
+        winInput.value = String(next);
+        decBtn.disabled = next <= 1;
+        if (drawer.classList.contains('is-open')) loadLearningDash();
+      }
+      async function loadLearningDash() {
+        const h = normalizeWindowValue();
+        const kpiEl = document.getElementById('learnKpi');
+        const byCatEl = document.getElementById('learnByCat');
+        const tbody = document.querySelector('#learnEvents tbody');
+        if (kpiEl) kpiEl.innerHTML = '<div><span>loading</span><strong>...</strong></div>';
+        if (byCatEl) byCatEl.textContent = '';
+        if (tbody) tbody.innerHTML = '';
+        try {
+          const res = await fetch('/api/learning/dashboard?window_hours=' + encodeURIComponent(h));
+          const j = await res.json();
+          if (!j || !j.success) {
+            if (kpiEl) kpiEl.innerHTML = '<div><span>error</span><strong>' + escapeHtml(j && j.error ? String(j.error) : String(res.status)) + '</strong></div>';
+            return;
+          }
+          const k = j.kpi || {};
+          if (kpiEl) {
+            kpiEl.innerHTML = [
+              ['total_events', k.total_events],
+              ['success_rate', pct(k.success_rate)],
+              ['rollback_rate', pct(k.rollback_rate)],
+              ['drop_rate', pct(k.drop_rate)],
+            ].map(([k0, v]) => '<div><span>' + escapeHtml(k0) + '</span><strong>' + escapeHtml(String(v ?? '')) + '</strong></div>').join('');
+          }
+          if (byCatEl) {
+            const byCat = j.rates_by_category || {};
+            if (Object.keys(byCat).length === 0) {
+              byCatEl.textContent = '暂无分类统计数据';
+            } else {
+              byCatEl.textContent = JSON.stringify(byCat, null, 2);
+            }
+          }
+          if (tbody) {
+            const rows = (j.recent_events || []).slice(-40);
+            if (rows.length === 0) {
+              const tr = document.createElement('tr');
+              tr.innerHTML = '<td colspan="4" style="text-align:center;color:var(--text-muted);">暂无学习数据，先进行几次工具调用后会显示统计</td>';
+              tbody.appendChild(tr);
+            } else {
+              for (const ev of rows) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + escapeHtml(String(ev.time || '')) + '</td>' +
+                  '<td>' + escapeHtml(String(ev.category || '')) + '</td>' +
+                  '<td>' + escapeHtml(String(ev.outcome || '')) + '</td>' +
+                  '<td style="font-family:ui-monospace,monospace">' + escapeHtml(String(ev.sessionKey || '')) + '</td>';
+                tbody.appendChild(tr);
+              }
+            }
+          }
+        } catch (e) {
+          if (kpiEl) kpiEl.innerHTML = '<div><span>error</span><strong>' + escapeHtml(String(e)) + '</strong></div>';
+        }
+      }
+      btn.onclick = function () {
+        setOpen(true);
+        loadLearningDash();
+      };
+      closeBtn.onclick = function () { setOpen(false); };
+      backdrop.onclick = function () { setOpen(false); };
+      refreshBtn.onclick = function () { loadLearningDash(); };
+      decBtn.onclick = function () { stepWindow(-1); };
+      incBtn.onclick = function () { stepWindow(1); };
+      winInput.onchange = function () { if (drawer.classList.contains('is-open')) loadLearningDash(); };
+      normalizeWindowValue();
+    })();
+
+    (function initSendShortcut() {
+      const el = document.getElementById('sendShortcut');
+      if (el) el.textContent = /Mac|iPhone|iPad/i.test(navigator.platform) ? '⌘ ↵' : 'Ctrl ↵';
+    })();
+
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+    const uploadBtn = document.getElementById('upload');
+    const micBtn = document.getElementById('mic');
+    const fileInput = document.getElementById('fileInput');
+    const uploadHint = document.getElementById('uploadHint');
+    const inputArea = document.getElementById('inputArea');
+
+    let mediaRecorder = null;
+    let audioChunks = [];
+
+    const markedRenderer = new marked.Renderer();
+    // Marked v17+ passes a single token object to renderer methods (not legacy positional args).
+    // Prevent raw HTML injection in markdown output.
+    markedRenderer.html = function (token) {
+      const raw = token != null && typeof token === 'object' && 'text' in token
+        ? String(token.text ?? '')
+        : String(token ?? '');
+      return escapeHtml(raw);
+    };
+    // Prevent javascript:/data: URLs in markdown links.
+    markedRenderer.link = function (token) {
+      const hrefRaw = token && token.href != null ? String(token.href).trim() : '';
+      const title = token && token.title != null ? String(token.title) : '';
+      let inner = '';
+      if (token && token.tokens && token.tokens.length && this.parser) {
+        inner = this.parser.parseInline(token.tokens);
+      }
+      if (!hrefRaw) return inner || '';
+      let parsed = null;
+      try { parsed = new URL(hrefRaw, window.location.origin); } catch (_) {}
+      const scheme = parsed ? parsed.protocol.toLowerCase() : '';
+      const allowed = scheme === 'http:' || scheme === 'https:' || scheme === 'mailto:';
+      if (!allowed) return escapeHtml(hrefRaw);
+      const safeHref = escapeHtml(parsed.href);
+      const safeTitle = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<a href="${safeHref}"${safeTitle} target="_blank" rel="noopener noreferrer">${inner}</a>`;
+    };
+    marked.setOptions({ breaks: true, renderer: markedRenderer });
+    function mdToHtml(text) {
+      if (!text) return '';
+      return marked.parse(text);
+    }
+
+    function addMsg(role, content) {
+      content = stringifyChatContent(content);
+      const div = document.createElement('div');
+      div.className = 'msg ' + role;
+      div.dataset.replyContent = content;
+      const body = document.createElement('div');
+      body.innerHTML = role === 'bot' ? mdToHtml(content) : escapeHtml(content);
+      div.appendChild(body);
+      div.addEventListener('contextmenu', (e) => showMsgContextMenu(e, content));
+      div.addEventListener('touchstart', (e) => onMsgTouchStart(e, content), { passive: true });
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    const fileIconImg = (src) => `<img src="${src}" alt="" class="file-chip-icon" width="18" height="18">`;
+    const fileIconHtmlExts = new Set(['html', 'htm', 'xhtml']);
+    const fileIconImageExts = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico', 'tif', 'tiff', 'avif', 'heic', 'heif']);
+    const fileIconByExt = {
+      pdf: '/static/icons/icon-file-pdf.svg',
+      doc: '/static/icons/icon-file-word.svg',
+      docx: '/static/icons/icon-file-word.svg',
+      xls: '/static/icons/icon-file-excel.svg',
+      xlsx: '/static/icons/icon-file-excel.svg',
+      ppt: '/static/icons/icon-file-ppt.svg',
+      pptx: '/static/icons/icon-file-ppt.svg',
+      csv: '/static/icons/icon-file-csv.svg',
+      txt: '/static/icons/icon-file-txt.svg',
+      md: '/static/icons/icon-file-txt.svg',
+      json: '/static/icons/icon-file-txt.svg',
+      py: '/static/icons/icon-file-txt.svg',
+      js: '/static/icons/icon-file-txt.svg',
+    };
+
+    function fileIcon(path) {
+      const ext = (path.split('.').pop() || '').toLowerCase();
+      if (fileIconHtmlExts.has(ext)) return fileIconImg('/static/icons/icon-web.svg');
+      if (fileIconImageExts.has(ext)) return fileIconImg('/static/icons/icon-file-image.svg');
+      return fileIconImg(fileIconByExt[ext] || '/static/icons/icon-file-attachment.svg');
+    }
+
+    let pendingFiles = [];
+    const fileChipsEl = document.getElementById('fileChips');
+
+    function renderFileChips() {
+      fileChipsEl.innerHTML = '';
+      document.querySelector('.input-box').classList.toggle('has-chips', pendingFiles.length > 0);
+      pendingFiles.forEach((p, i) => {
+        const name = p.split('/').pop() || p;
+        const chip = document.createElement('div');
+        chip.className = 'file-chip';
+        chip.innerHTML = `<span>${fileIcon(p)}</span><span>${escapeHtml(name)}</span><button type="button" class="file-chip-remove" data-i="${i}">×</button>`;
+        chip.querySelector('.file-chip-remove').onclick = () => {
+          pendingFiles.splice(i, 1);
+          renderFileChips();
+        };
+        fileChipsEl.appendChild(chip);
+      });
+    }
+
+    let replyTo = null;
+    let contextMenuTarget = null;
+    let contextMenuSelection = '';
+
+    function showMsgContextMenu(e, content) {
+      e.preventDefault();
+      contextMenuTarget = content;
+      contextMenuSelection = (window.getSelection?.()?.toString() || '').trim();
+      const menu = document.getElementById('contextMenu');
+      menu.classList.remove('is-hidden');
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+    }
+
+    function hideContextMenu() {
+      document.getElementById('contextMenu').classList.add('is-hidden');
+      contextMenuTarget = null;
+    }
+
+    let touchTimer = null;
+    function onMsgTouchStart(e, content) {
+      touchTimer = setTimeout(() => {
+        touchTimer = null;
+        const t = e.touches[0] || e.changedTouches[0];
+        if (t) showMsgContextMenu({ preventDefault: () => {}, clientX: t.clientX, clientY: t.clientY }, content);
+      }, 500);
+    }
+    function cancelTouchTimer() {
+      if (touchTimer) { clearTimeout(touchTimer); touchTimer = null; }
+    }
+    document.addEventListener('touchend', cancelTouchTimer);
+    document.addEventListener('touchcancel', cancelTouchTimer);
+    document.addEventListener('touchmove', cancelTouchTimer);
+
+    document.addEventListener('click', () => hideContextMenu());
+    document.getElementById('contextMenu').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const btn = e.target.closest('button[data-action]');
+      if (!btn || !contextMenuTarget) return;
+      if (btn.dataset.action === 'quote') setReply(contextMenuTarget);
+      if (btn.dataset.action === 'copy') {
+        const toCopy = contextMenuSelection || contextMenuTarget;
+        navigator.clipboard?.writeText(toCopy);
+      }
+      hideContextMenu();
+    });
+    function setReply(content) {
+      replyTo = content;
+      const el = document.getElementById('replyPreview');
+      if (el) {
+        el.classList.remove('is-hidden');
+        const text = el.querySelector('.reply-text');
+        text.textContent = content.length > 80 ? content.slice(0, 80) + '...' : content;
+      }
+    }
+    function clearReply() {
+      replyTo = null;
+      const el = document.getElementById('replyPreview');
+      if (el) el.classList.add('is-hidden');
+    }
+
+    const LOGO = '🐕';
+    const THINKING_BASE = LOGO + ' dipper-bot is thinking';
+    const DOTS = ['', '.', '..', '...'];
+    let typingDotsInterval = null;
+    let typingToolsList = [];
+    let typingDotIndex = 0;
+
+    function clearTypingInterval() {
+      if (typingDotsInterval) {
+        clearInterval(typingDotsInterval);
+        typingDotsInterval = null;
+      }
+    }
+
+    function formatToolLinesOnly(tools) {
+      if (!tools || tools.length === 0) return '';
+      return tools.map((t) => {
+        const name = stringifyChatContent(t && t.tool != null ? t.tool : '');
+        const det = t && t.detail != null && t.detail !== '' ? stringifyChatContent(t.detail) : '';
+        return det ? '  ↳ ' + name + ': ' + det : '  ↳ ' + name;
+      }).join('\n');
+    }
+
+    /** Full typing area text (for copy / context menu). */
+    function getTypingPlainText() {
+      const thinkingLine = THINKING_BASE + DOTS[typingDotIndex % 4];
+      const toolBlock = formatToolLinesOnly(typingToolsList);
+      return toolBlock ? thinkingLine + '\n' + toolBlock : thinkingLine;
+    }
+
+    function ensureTypingEl() {
+      let el = document.getElementById('typing');
+      if (el && !el.querySelector('.typing-dots-line')) {
+        el.remove();
+        el = null;
+      }
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'typing';
+        el.className = 'typing';
+        const dots = document.createElement('div');
+        dots.className = 'typing-dots-line';
+        const pre = document.createElement('pre');
+        pre.className = 'typing-tools';
+        el.appendChild(dots);
+        el.appendChild(pre);
+        el.addEventListener('contextmenu', (e) => showMsgContextMenu(e, getTypingPlainText()));
+        el.addEventListener('touchstart', (e) => onMsgTouchStart(e, getTypingPlainText()), { passive: true });
+        chat.appendChild(el);
+      }
+      return el;
+    }
+
+    function syncTypingToolsDOM(el) {
+      const pre = el.querySelector('.typing-tools');
+      if (!pre) return;
+      const t = formatToolLinesOnly(typingToolsList);
+      pre.textContent = t;
+      pre.style.display = t ? 'block' : 'none';
+    }
+
+    function syncTypingDotsDOM(el) {
+      const line = el.querySelector('.typing-dots-line');
+      if (!line) return;
+      line.textContent = THINKING_BASE + DOTS[typingDotIndex % 4];
+    }
+
+    const SCROLL_NEAR_BOTTOM_THRESHOLD = 80;
+    function isUserNearBottom() {
+      return chat.scrollHeight - chat.scrollTop - chat.clientHeight <= SCROLL_NEAR_BOTTOM_THRESHOLD;
+    }
+
+    function scrollToBottomIfNear() {
+      if (isUserNearBottom()) chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setTyping(show, tools) {
+      const el = document.getElementById('typing');
+      if (show) {
+        const box = ensureTypingEl();
+        typingToolsList = tools || [];
+        syncTypingToolsDOM(box);
+        clearTypingInterval();
+        typingDotIndex = 0;
+        syncTypingDotsDOM(box);
+        typingDotsInterval = setInterval(() => {
+          const typingEl = document.getElementById('typing');
+          if (!typingEl) { clearTypingInterval(); return; }
+          typingDotIndex = (typingDotIndex + 1) % 4;
+          syncTypingDotsDOM(typingEl);
+          scrollToBottomIfNear();
+        }, 400);
+        scrollToBottomIfNear();
+      } else {
+        clearTypingInterval();
+        typingToolsList = [];
+        typingDotIndex = 0;
+        if (el) el.remove();
+      }
+    }
+
+    let chatAbortController = null;
+    function abortChatRequest() {
+      if (chatAbortController) {
+        chatAbortController.abort();
+        chatAbortController = null;
+      }
+    }
+    function resetChatState() {
+      setTyping(false);
+      sendBtn.disabled = false;
+      chatAbortController = null;
+    }
+    window.addEventListener('pagehide', abortChatRequest);
+    window.addEventListener('beforeunload', abortChatRequest);
+    window.addEventListener('pageshow', (e) => {
+      if (e.persisted) resetChatState();
+    });
+
+    async function send() {
+      let content = input.value.trim();
+      if (!content && !replyTo && pendingFiles.length === 0) return;
+      const filePrefix = pendingFiles.length > 0 ? '[附件] ' + pendingFiles.join(', ') + '\n\n' : '';
+      if (replyTo) {
+        content = '> [引用]\n' + replyTo.replace(/^/gm, '> ') + '\n\n' + filePrefix + (content || '');
+        clearReply();
+      } else {
+        content = filePrefix + (content || '');
+      }
+      input.value = '';
+      pendingFiles = [];
+      renderFileChips();
+      addMsg('user', content);
+      sendBtn.disabled = true;
+      const toolsList = [];
+      setTyping(true);
+      abortChatRequest();
+      chatAbortController = new AbortController();
+      try {
+        const res = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content }),
+          signal: chatAbortController.signal
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || res.statusText);
+        }
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        let finalContent = '';
+        let finalError = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          const lines = buf.split('\n');
+          buf = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const ev = JSON.parse(line);
+              if (ev.type === 'progress') {
+                toolsList.push({
+                  tool: stringifyChatContent(ev.tool != null ? ev.tool : ''),
+                  detail: ev.detail != null ? stringifyChatContent(ev.detail) : '',
+                });
+                setTyping(true, toolsList);
+              } else if (ev.type === 'done') {
+                finalContent = stringifyChatContent(ev.content != null ? ev.content : '');
+              } else if (ev.type === 'error') {
+                finalError = ev.error || '';
+              }
+            } catch (_) {}
+          }
+        }
+        if (buf.trim()) {
+          try {
+            const ev = JSON.parse(buf);
+            if (ev.type === 'done') finalContent = stringifyChatContent(ev.content != null ? ev.content : '');
+            else if (ev.type === 'error') finalError = ev.error || '';
+          } catch (_) {}
+        }
+        setTyping(false);
+        if (finalError) addMsg('bot', '错误: ' + finalError);
+        else if (finalContent !== undefined) addMsg('bot', finalContent);
+      } catch (e) {
+        setTyping(false);
+        if (e.name !== 'AbortError') addMsg('bot', '请求失败: ' + e.message);
+      }
+      chatAbortController = null;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+
+    function showUploadHint(msg, isError) {
+      uploadHint.textContent = msg;
+      uploadHint.style.color = isError ? '#f87171' : '#71717a';
+    }
+
+    async function doUpload(files) {
+      files = files || fileInput.files;
+      if (!files || files.length === 0) return;
+      uploadBtn.disabled = true;
+      showUploadHint('上传中...');
+      const fd = new FormData();
+      for (let i = 0; i < files.length; i++) fd.append('file', files[i]);
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.error) {
+          addMsg('bot', '上传失败: ' + data.error);
+        } else {
+          pendingFiles.push(...(data.paths || []));
+          renderFileChips();
+          fileInput.value = '';
+        }
+      } catch (e) {
+        addMsg('bot', '上传失败: ' + e.message);
+      }
+      showUploadHint('');
+      uploadBtn.disabled = false;
+    }
+
+    async function startVoiceInput() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach(t => t.stop());
+          if (audioChunks.length === 0) return;
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const fd = new FormData();
+          fd.append('audio', blob, 'voice.webm');
+          micBtn.disabled = true;
+          showUploadHint('转写中...');
+          try {
+            const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.error) {
+              addMsg('bot', '转写失败: ' + data.error);
+            } else if (data.text) {
+              input.value = (input.value ? input.value + ' ' : '') + data.text;
+            } else {
+              addMsg('bot', '未识别到语音');
+            }
+          } catch (e) {
+            addMsg('bot', '转写请求失败: ' + e.message);
+          }
+          showUploadHint('');
+          micBtn.disabled = false;
+        };
+        mediaRecorder.start();
+        micBtn.classList.add('recording');
+        micBtn.title = '点击停止录音';
+      } catch (e) {
+        addMsg('bot', '无法访问麦克风: ' + e.message);
+      }
+    }
+    function stopVoiceInput() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        micBtn.classList.remove('recording');
+        micBtn.title = '语音输入';
+      }
+    }
+    micBtn.onclick = () => {
+      if (micBtn.classList.contains('recording')) stopVoiceInput();
+      else startVoiceInput();
+    };
+
+    uploadBtn.onclick = () => fileInput.click();
+    fileInput.onchange = () => doUpload();
+
+    document.getElementById('replyCancel').onclick = clearReply;
+
+    inputArea.ondragover = (e) => {
+      e.preventDefault();
+      if (e.dataTransfer.types.includes('Files')) inputArea.classList.add('drag-over');
+    };
+    inputArea.ondragleave = () => inputArea.classList.remove('drag-over');
+    inputArea.ondrop = (e) => {
+      e.preventDefault();
+      inputArea.classList.remove('drag-over');
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) doUpload(files);
+    };
+
+    sendBtn.onclick = send;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        send();
+      }
+    };
+  </script>
+</body>
+</html>

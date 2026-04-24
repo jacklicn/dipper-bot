@@ -1,0 +1,15 @@
+[Unit]
+Description=dipper-bot Gateway (AI assistant)
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/dipper-bot gateway
+Restart=always
+RestartSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=%h
+
+[Install]
+WantedBy=default.target

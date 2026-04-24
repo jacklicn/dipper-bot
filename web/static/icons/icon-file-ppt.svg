@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <g id="icon">
+    <path fill="#C43E1C" d="M4 3.5C4 2.67 4.67 2 5.5 2h9.5l5 5v13.5c0 .83-.67 1.5-1.5 1.5h-13A1.5 1.5 0 0 1 4 20.5V3.5Z"/>
+    <path fill="#ED6C47" d="M15 2v4.5c0 .83.67 1.5 1.5 1.5H21l-6-6Z"/>
+    <text x="12" y="15.35" fill="#fff" font-family="Segoe UI, system-ui, -apple-system, Arial, sans-serif" font-size="10" font-weight="700" text-anchor="middle" dominant-baseline="middle">P</text>
+  </g>
+</svg>

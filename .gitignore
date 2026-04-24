@@ -1,0 +1,43 @@
+# Binary
+dipper-bot
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go
+*.test
+*.out
+go.work
+go.work.sum
+vendor/
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Local config (optional: remove if you want to commit example config)
+# .dipper-bot/
+
+# Coverage
+coverage.out
+coverage.html
+*.coverprofile
+
+# Build cache
+/build/
+
+# Bridge (Node.js)
+bridge/node_modules/
+bridge/dist/
+
+# Workspace venv (Python scripts)
+workspace/.venv/
+
+# Logs
+*.log

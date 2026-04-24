@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <g id="icon">
+    <!-- 类似 📄：浅纸色 + 折角 + 横线段落 -->
+    <path fill="#F5F2EC" stroke="#E0DCD3" stroke-width="0.4" stroke-linejoin="round" d="M4 3.5C4 2.67 4.67 2 5.5 2h9.5l5 5v13.5c0 .83-.67 1.5-1.5 1.5h-13A1.5 1.5 0 0 1 4 20.5V3.5Z"/>
+    <!-- 折角与纸边斜线 (15,2)→(20,7) 共边，顶点收到 (20,7)，避免原先 H21 伸出轮廓 -->
+    <path fill="#E6E3DC" d="M15 2L20 7L15 7Z"/>
+    <g fill="#BEB9AE">
+      <rect x="6" y="8.6" width="11.8" height="0.5" rx="0.25"/>
+      <rect x="6" y="10.35" width="9" height="0.5" rx="0.25"/>
+      <rect x="6" y="12.1" width="10.5" height="0.5" rx="0.25"/>
+      <rect x="6" y="13.85" width="7.5" height="0.5" rx="0.25"/>
+      <rect x="6" y="15.6" width="9.8" height="0.5" rx="0.25"/>
+    </g>
+  </g>
+</svg>

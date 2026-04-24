@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true">
+  <defs>
+    <clipPath id="iconFileImageThumb">
+      <rect x="6.25" y="9" width="11.5" height="8.5" rx="0.65"/>
+    </clipPath>
+  </defs>
+  <g id="icon">
+    <path fill="#7C3AED" d="M4 3.5C4 2.67 4.67 2 5.5 2h9.5l5 5v13.5c0 .83-.67 1.5-1.5 1.5h-13A1.5 1.5 0 0 1 4 20.5V3.5Z"/>
+    <path fill="#A78BFA" d="M15 2v4.5c0 .83.67 1.5 1.5 1.5H21l-6-6Z"/>
+    <g clip-path="url(#iconFileImageThumb)">
+      <rect x="6.25" y="9" width="11.5" height="8.5" fill="#BAE6FD"/>
+      <!-- Sun: upper-right, clear of rounded corner and ridge line -->
+      <circle cx="15.95" cy="9.92" r="0.82" fill="#FDE047"/>
+      <!-- Distant ridge (lighter) then nearer range -->
+      <path fill="#38BDF8" d="M6.25 16.2 8.1 12.8 10.5 15.2 12.6 11.4 17.75 16.8V17.5H6.25z"/>
+      <path fill="#0284C7" d="M6.25 17.5 8.85 14.5 10.35 11.85 12.9 15 14.75 10.55 17.75 15.6V17.5H6.25z"/>
+    </g>
+  </g>
+</svg>
